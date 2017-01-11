@@ -6,6 +6,7 @@
                                                  
  Lexington High School APCS Final Project
  Written by Vivek Bhupatiraju and Harrison Liu
+ Modified by Andrew Gritsevskiy '18
  */
 
 /******************************
@@ -95,6 +96,7 @@ boolean redChange, greenChange, loading, instructions;
 boolean redDead = false, greenDead = false, redInd, greenInd;
 int numDead;
 double time;
+boolean skip;
 
 int loadpercent = 0, instpercent = 0, redScore = 0, greenScore = 0;
 
@@ -113,7 +115,7 @@ void setup()
   ellipseMode(CENTER);
   
   font = createFont("Gill Sans MT", 36);
-  loading = true;
+  loading = false; // for debugging
   
   loadGame();
 }
@@ -132,6 +134,10 @@ void draw()
  else if (instructions) instructions(instpercent++);
  else makeBoard();
  
+ if (skip) {
+   newGame();
+   loadGame();
+ }
  if (redDead) {
    textSize(32);
    textAlign(CENTER, CENTER);
@@ -156,8 +162,9 @@ void loadGame()
   numDead = 0;
   time = 0.0;
   redInd = greenInd = false;
+  skip = false;
   redChange = true; greenChange = true;
-  keys = new boolean[2*5];
+  keys = new boolean[10000]; // Whatever
   activeBullet = new LinkedList<Bullet>();
   activeTank = new LinkedList<Tank>();
   border = new LinkedList<ArrayList<Integer>>();
@@ -224,7 +231,9 @@ void generateMaze()
     {340, 340, 340, 420},
     {340, 100, 340, 260},
     {340, 100, 500, 100},
-    {420, 180, 420, 500}},
+    {420, 180, 420, 500}}
+    
+    ,
     
     {{20, 20, 20, 500},
     {20, 20, 500, 20},
@@ -236,7 +245,9 @@ void generateMaze()
     {100, 260, 340, 260},
     {100, 340, 340, 340},
     {100, 420, 500, 420},
-    {420, 20, 420, 340}},
+    {420, 20, 420, 340}}
+    
+    ,
     
     {{20, 20, 20, 500},
     {20, 20, 500, 20},
@@ -251,10 +262,20 @@ void generateMaze()
     {100, 340, 180, 340},
     {420, 180, 420, 340},
     {340, 180, 420, 180},
-    {340, 340, 420, 340}}    
+    {340, 340, 420, 340}}
+    
+    ,
+    
+    {{20, 20, 20, 500},
+    {20, 20, 500, 20},
+    {500, 20, 500, 500},
+    {20, 500, 500, 500},
+    {250, 20, 250, 100},
+    {250, 120, 250, 360},
+    {250, 380, 250, 480}}    
   };
   
-  int ii = int(random(0, 3));
+  int ii = int(random(0, segment.length));
   
   for (int[] l : segment[ii]) maze.add(new Line(l[0], l[1], l[2], l[3])); 
 }
@@ -338,6 +359,9 @@ void updateTanks()
     activeBullet.add(new Bullet(TWO_PI - t.currentAngle, t.x + 20*(cos(TWO_PI - t.currentAngle)), t.y + 20*(sin(TWO_PI - t.currentAngle)), 1));
     greenChange = false;
   }
+  if (keys[10]) {
+    skip = true;
+  }
   
 }
 
@@ -396,8 +420,8 @@ void displayBullets()
 {
   for (int i = 0; i < activeBullet.size(); i++)
   {
-      fill(255);
-      ellipse(activeBullet.get(i).x, activeBullet.get(i).y, 6, 6);
+      fill( random(50), random(50), random(50), random(50));
+      ellipse(activeBullet.get(i).x, activeBullet.get(i).y, rand(6, 10), rand(6, 10));
   }
 }
 
@@ -453,6 +477,9 @@ void makeBoard()
     greenInd = true;
     numDead++; return ;
   }
+  if (skip) {
+    return ;
+  }
   
   clearBoard();
   
@@ -482,6 +509,7 @@ void keyPressed()
     if (key == 's' || key == 'S') keys[7] = true;
     if (key == 'f' || key == 'F') keys[8] = true;
     if (key == 'q' || key == 'Q') keys[9] = true;
+    if (key == 'z' || key == 'Z') keys[10] = true;
   }
 }
 
@@ -499,6 +527,7 @@ void keyReleased()
     if (key == 's' || key == 'S') keys[7] = false;
     if (key == 'f' || key == 'F') keys[8] = false;
     if (key == 'q' || key == 'Q') {keys[9] = false; greenChange = true;}
+    if (key == 'z' || key == 'Z') keys[10] = false;
   }
 }
 
@@ -564,4 +593,8 @@ boolean within(int w, int x1, int y1, int x2, int y2)
 {
   if ((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2) <= w*w) return true;
   else return false;  
+}
+
+int rand(int min, int max) {
+  return (int) random(max - min) + min;
 }
