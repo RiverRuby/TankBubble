@@ -16,6 +16,13 @@
 import java.util.LinkedList;
 import java.util.HashMap;
 
+
+/******************************
+ Game variables
+ *******************************/
+boolean RESPECT_WALLS = false;
+boolean BULLETS_RESPECT_WALLS = true;
+
 /******************************
  CLASS DEFINITIONS
  *******************************/
@@ -42,14 +49,16 @@ class Bullet
   float x, y;
   int timeLeft; // lasts for 5 seconds
   int id;
+  color c;
 
-  Bullet(float angle, float x, float y, int id)
+  Bullet(float angle, float x, float y, int id, color c)
   {
     this.currentAngle = angle;
     this.x = x;
     this.y = y;
     timeLeft = millis();
     this.id = id;
+    this.c = c;
   }
 }
 
@@ -322,10 +331,16 @@ void updateTanks()
   if (keys[0] && moveValid(0, cos(-activeTank.get(0).currentAngle)*3, sin(-activeTank.get(0).currentAngle)*3)) {
     activeTank.get(0).y += sin(-activeTank.get(0).currentAngle)*3;
     activeTank.get(0).x += cos(-activeTank.get(0).currentAngle)*3;
+  } else if (keys[0] && !RESPECT_WALLS) {
+    activeTank.get(0).y += sin(-activeTank.get(0).currentAngle)*0.3;
+    activeTank.get(0).x += cos(-activeTank.get(0).currentAngle)*0.3;
   } 
   if (keys[1] && moveValid(0, -cos(-activeTank.get(0).currentAngle)*3, -sin(-activeTank.get(0).currentAngle)*3)) {
     activeTank.get(0).y -= sin(-activeTank.get(0).currentAngle)*3;
     activeTank.get(0).x -= cos(-activeTank.get(0).currentAngle)*3;
+  } else if (keys[1] && !RESPECT_WALLS) {
+    activeTank.get(0).y -= sin(-activeTank.get(0).currentAngle)*0.3;
+    activeTank.get(0).x -= cos(-activeTank.get(0).currentAngle)*0.3;
   } 
   if (keys[2]) {
     activeTank.get(0).currentAngle += PI/48;
@@ -336,10 +351,16 @@ void updateTanks()
   if (keys[5] && moveValid(1, cos(-activeTank.get(1).currentAngle)*3, sin(-activeTank.get(1).currentAngle)*3)) {
     activeTank.get(1).y += sin(-activeTank.get(1).currentAngle)*3;
     activeTank.get(1).x += cos(-activeTank.get(1).currentAngle)*3;
+  } else if (keys[5] && !RESPECT_WALLS) {
+    activeTank.get(1).y += sin(-activeTank.get(1).currentAngle)*0.3;
+    activeTank.get(1).x += cos(-activeTank.get(1).currentAngle)*0.3;
   } 
   if (keys[6] && moveValid(1, -cos(-activeTank.get(1).currentAngle)*3, -sin(-activeTank.get(1).currentAngle)*3)) {
     activeTank.get(1).y -= sin(-activeTank.get(1).currentAngle)*3;
     activeTank.get(1).x -= cos(-activeTank.get(1).currentAngle)*3;
+  } else if (keys[6] && !RESPECT_WALLS) {
+    activeTank.get(1).y -= sin(-activeTank.get(1).currentAngle)*0.3;
+    activeTank.get(1).x -= cos(-activeTank.get(1).currentAngle)*0.3;
   } 
   if (keys[7]) {
     activeTank.get(1).currentAngle += PI/48;
@@ -350,13 +371,13 @@ void updateTanks()
   if (keys[4] && redChange && activeTank.get(0).bulletCount > 0 && activeTank.get(0).alive) {
     activeTank.get(0).bulletCount--;
     Tank t = activeTank.get(0);
-    activeBullet.add(new Bullet(TWO_PI - t.currentAngle, t.x + 20*(cos(TWO_PI - t.currentAngle)), t.y + 20*(sin(TWO_PI - t.currentAngle)), 0));
+    activeBullet.add(new Bullet(TWO_PI - t.currentAngle, t.x + 20*(cos(TWO_PI - t.currentAngle)), t.y + 20*(sin(TWO_PI - t.currentAngle)), 0, randColor()));
     redChange = false;
   }
   if (keys[9] && greenChange && activeTank.get(1).bulletCount > 0 && activeTank.get(1).alive) {
     activeTank.get(1).bulletCount--;
     Tank t = activeTank.get(1);
-    activeBullet.add(new Bullet(TWO_PI - t.currentAngle, t.x + 20*(cos(TWO_PI - t.currentAngle)), t.y + 20*(sin(TWO_PI - t.currentAngle)), 1));
+    activeBullet.add(new Bullet(TWO_PI - t.currentAngle, t.x + 20*(cos(TWO_PI - t.currentAngle)), t.y + 20*(sin(TWO_PI - t.currentAngle)), 1, randColor()));
     greenChange = false;
   }
   if (keys[10]) {
@@ -383,6 +404,9 @@ void displayTanks()
     }
 }
 
+double bulletXSpeed = 3;
+double bulletYSpeed = 3;
+
 void updateBullets()
 {
   for (int i = 0; i < activeBullet.size(); i++)
@@ -398,20 +422,22 @@ void updateBullets()
      
     else 
     {
-      b.y += sin(b.currentAngle)*3.1;
-      b.x += cos(b.currentAngle)*3.1;
-       
-      for (int k = (int)b.x-8; k <= b.x+8; k++)
-        for (int j = (int)b.y-8; j <= b.y+8; j++)
-           if (board.containsKey(new Coor(k, j)) && board.get(new Coor(k, j)) != 0)
-           {
-             if (within(3, k, j, (int)(b.x), (int)(b.y)))
+      b.y += sin(b.currentAngle) * bulletXSpeed;
+      b.x += cos(b.currentAngle) * bulletYSpeed;
+      
+      if (BULLETS_RESPECT_WALLS) { 
+        for (int k = (int)b.x-8; k <= b.x+8; k++)
+          for (int j = (int)b.y-8; j <= b.y+8; j++)
+             if (board.containsKey(new Coor(k, j)) && board.get(new Coor(k, j)) != 0)
              {
-                if (board.get(new Coor(k, j)) == 1) b.currentAngle = ((PI - b.currentAngle) + TWO_PI) % TWO_PI;
-                else if (board.get(new Coor(k, j)) == 2) b.currentAngle = TWO_PI - b.currentAngle;
+               if (within(3, k, j, (int)(b.x), (int)(b.y)))
+               {
+                  if (board.get(new Coor(k, j)) == 1) b.currentAngle = ((PI - b.currentAngle) + TWO_PI) % TWO_PI;
+                  else if (board.get(new Coor(k, j)) == 2) b.currentAngle = TWO_PI - b.currentAngle;
+               }
              }
-           }
-    }
+      }
+      }
     
   }  
 }
@@ -420,8 +446,8 @@ void displayBullets()
 {
   for (int i = 0; i < activeBullet.size(); i++)
   {
-      fill( random(50), random(50), random(50), random(50));
-      ellipse(activeBullet.get(i).x, activeBullet.get(i).y, rand(6, 10), rand(6, 10));
+      fill( activeBullet.get(i).c );
+      ellipse(activeBullet.get(i).x, activeBullet.get(i).y, 10, 10);
   }
 }
 
@@ -597,4 +623,8 @@ boolean within(int w, int x1, int y1, int x2, int y2)
 
 int rand(int min, int max) {
   return (int) random(max - min) + min;
+}
+
+color randColor() {
+  return color(rand(0, 255), rand(0, 255), rand(0, 255));
 }
