@@ -320,6 +320,9 @@ boolean moveValid(int id, float xc, float yc)
   return true;
 }
 
+
+
+
 void spawnTanks()
 {
   activeTank.add(new Tank(60, 60));
@@ -393,6 +396,17 @@ void displayTanks()
     {
       Tank t = activeTank.get(i);
       PImage img = loadImage(Integer.toString(i+1) + ".png");
+      img.resize(40, 40);
+  
+      translate(int(t.x), int(t.y));
+      rotate(-t.currentAngle);
+      image(img, 0, 0);
+  
+      rotate(t.currentAngle);
+      translate(-t.x, -t.y);
+    } else {
+      Tank t = activeTank.get(i);
+      PImage img = loadImage(Integer.toString(i+1) + "dead.png");
       img.resize(40, 40);
   
       translate(int(t.x), int(t.y));
