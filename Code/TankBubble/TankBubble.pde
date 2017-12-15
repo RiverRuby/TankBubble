@@ -23,6 +23,12 @@ import java.util.HashMap;
 boolean RESPECT_WALLS = false;
 boolean BULLETS_RESPECT_WALLS = true;
 
+boolean SIMULATE_LAG = true;
+
+int BULLET_SPEED = 3;
+
+int MAX_BULLETS = 10;
+
 /******************************
  CLASS DEFINITIONS
  *******************************/
@@ -31,7 +37,7 @@ class Tank
 {
   float currentAngle;
   float x, y;
-  int bulletCount = 5;
+  int bulletCount = MAX_BULLETS;
   int startTime = 0;
   boolean alive = true;
 
@@ -418,8 +424,8 @@ void displayTanks()
     }
 }
 
-double bulletXSpeed = 3;
-double bulletYSpeed = 3;
+double bulletXSpeed = BULLET_SPEED;
+double bulletYSpeed = BULLET_SPEED;
 
 void updateBullets()
 {
@@ -436,6 +442,11 @@ void updateBullets()
      
     else 
     {
+      if (SIMULATE_LAG) {
+        bulletXSpeed = ((float)activeTank.get(activeBullet.get(i).id).bulletCount / MAX_BULLETS) * BULLET_SPEED;
+        bulletYSpeed = ((float)activeTank.get(activeBullet.get(i).id).bulletCount / MAX_BULLETS) * BULLET_SPEED;
+      }
+      
       b.y += sin(b.currentAngle) * bulletXSpeed;
       b.x += cos(b.currentAngle) * bulletYSpeed;
       
