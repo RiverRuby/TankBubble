@@ -6,6 +6,7 @@
                                                  
  Lexington High School APCS Final Project
  Written by Vivek Bhupatiraju and Harrison Liu
+ Modified by Andrew Gritsevskiy '18
  */
 
 /******************************
@@ -15,6 +16,19 @@
 import java.util.LinkedList;
 import java.util.HashMap;
 
+
+/******************************
+ Game variables
+ *******************************/
+boolean RESPECT_WALLS = false;
+boolean BULLETS_RESPECT_WALLS = true;
+
+boolean SIMULATE_LAG = true;
+
+int BULLET_SPEED = 3;
+
+int MAX_BULLETS = 10;
+
 /******************************
  CLASS DEFINITIONS
  *******************************/
@@ -23,7 +37,7 @@ class Tank
 {
   float currentAngle;
   float x, y;
-  int bulletCount = 5;
+  int bulletCount = MAX_BULLETS;
   int startTime = 0;
   boolean alive = true;
 
@@ -41,14 +55,16 @@ class Bullet
   float x, y;
   int timeLeft; // lasts for 5 seconds
   int id;
+  color c;
 
-  Bullet(float angle, float x, float y, int id)
+  Bullet(float angle, float x, float y, int id, color c)
   {
     this.currentAngle = angle;
     this.x = x;
     this.y = y;
     timeLeft = millis();
     this.id = id;
+    this.c = c;
   }
 }
 
@@ -95,6 +111,7 @@ boolean redChange, greenChange, loading, instructions;
 boolean redDead = false, greenDead = false, redInd, greenInd;
 int numDead;
 double time;
+boolean skip;
 
 int loadpercent = 0, instpercent = 0, redScore = 0, greenScore = 0;
 
@@ -113,7 +130,7 @@ void setup()
   ellipseMode(CENTER);
   
   font = createFont("Gill Sans MT", 36);
-  loading = true;
+  loading = false; // for debugging
   
   loadGame();
 }
@@ -132,6 +149,10 @@ void draw()
  else if (instructions) instructions(instpercent++);
  else makeBoard();
  
+ if (skip) {
+   newGame();
+   loadGame();
+ }
  if (redDead) {
    textSize(32);
    textAlign(CENTER, CENTER);
@@ -156,8 +177,9 @@ void loadGame()
   numDead = 0;
   time = 0.0;
   redInd = greenInd = false;
+  skip = false;
   redChange = true; greenChange = true;
-  keys = new boolean[2*5];
+  keys = new boolean[10000]; // Whatever
   activeBullet = new LinkedList<Bullet>();
   activeTank = new LinkedList<Tank>();
   border = new LinkedList<ArrayList<Integer>>();
@@ -224,7 +246,9 @@ void generateMaze()
     {340, 340, 340, 420},
     {340, 100, 340, 260},
     {340, 100, 500, 100},
-    {420, 180, 420, 500}},
+    {420, 180, 420, 500}}
+    
+    ,
     
     {{20, 20, 20, 500},
     {20, 20, 500, 20},
@@ -236,7 +260,9 @@ void generateMaze()
     {100, 260, 340, 260},
     {100, 340, 340, 340},
     {100, 420, 500, 420},
-    {420, 20, 420, 340}},
+    {420, 20, 420, 340}}
+    
+    ,
     
     {{20, 20, 20, 500},
     {20, 20, 500, 20},
@@ -251,10 +277,20 @@ void generateMaze()
     {100, 340, 180, 340},
     {420, 180, 420, 340},
     {340, 180, 420, 180},
-    {340, 340, 420, 340}}    
+    {340, 340, 420, 340}}
+    
+    ,
+    
+    {{20, 20, 20, 500},
+    {20, 20, 500, 20},
+    {500, 20, 500, 500},
+    {20, 500, 500, 500},
+    {250, 20, 250, 100},
+    {250, 120, 250, 360},
+    {250, 380, 250, 480}}    
   };
   
-  int ii = int(random(0, 3));
+  int ii = int(random(0, segment.length));
   
   for (int[] l : segment[ii]) maze.add(new Line(l[0], l[1], l[2], l[3])); 
 }
@@ -290,6 +326,9 @@ boolean moveValid(int id, float xc, float yc)
   return true;
 }
 
+
+
+
 void spawnTanks()
 {
   activeTank.add(new Tank(60, 60));
@@ -301,10 +340,16 @@ void updateTanks()
   if (keys[0] && moveValid(0, cos(-activeTank.get(0).currentAngle)*3, sin(-activeTank.get(0).currentAngle)*3)) {
     activeTank.get(0).y += sin(-activeTank.get(0).currentAngle)*3;
     activeTank.get(0).x += cos(-activeTank.get(0).currentAngle)*3;
+  } else if (keys[0] && !RESPECT_WALLS) {
+    activeTank.get(0).y += sin(-activeTank.get(0).currentAngle)*0.3;
+    activeTank.get(0).x += cos(-activeTank.get(0).currentAngle)*0.3;
   } 
   if (keys[1] && moveValid(0, -cos(-activeTank.get(0).currentAngle)*3, -sin(-activeTank.get(0).currentAngle)*3)) {
     activeTank.get(0).y -= sin(-activeTank.get(0).currentAngle)*3;
     activeTank.get(0).x -= cos(-activeTank.get(0).currentAngle)*3;
+  } else if (keys[1] && !RESPECT_WALLS) {
+    activeTank.get(0).y -= sin(-activeTank.get(0).currentAngle)*0.3;
+    activeTank.get(0).x -= cos(-activeTank.get(0).currentAngle)*0.3;
   } 
   if (keys[2]) {
     activeTank.get(0).currentAngle += PI/48;
@@ -315,10 +360,16 @@ void updateTanks()
   if (keys[5] && moveValid(1, cos(-activeTank.get(1).currentAngle)*3, sin(-activeTank.get(1).currentAngle)*3)) {
     activeTank.get(1).y += sin(-activeTank.get(1).currentAngle)*3;
     activeTank.get(1).x += cos(-activeTank.get(1).currentAngle)*3;
+  } else if (keys[5] && !RESPECT_WALLS) {
+    activeTank.get(1).y += sin(-activeTank.get(1).currentAngle)*0.3;
+    activeTank.get(1).x += cos(-activeTank.get(1).currentAngle)*0.3;
   } 
   if (keys[6] && moveValid(1, -cos(-activeTank.get(1).currentAngle)*3, -sin(-activeTank.get(1).currentAngle)*3)) {
     activeTank.get(1).y -= sin(-activeTank.get(1).currentAngle)*3;
     activeTank.get(1).x -= cos(-activeTank.get(1).currentAngle)*3;
+  } else if (keys[6] && !RESPECT_WALLS) {
+    activeTank.get(1).y -= sin(-activeTank.get(1).currentAngle)*0.3;
+    activeTank.get(1).x -= cos(-activeTank.get(1).currentAngle)*0.3;
   } 
   if (keys[7]) {
     activeTank.get(1).currentAngle += PI/48;
@@ -329,14 +380,17 @@ void updateTanks()
   if (keys[4] && redChange && activeTank.get(0).bulletCount > 0 && activeTank.get(0).alive) {
     activeTank.get(0).bulletCount--;
     Tank t = activeTank.get(0);
-    activeBullet.add(new Bullet(TWO_PI - t.currentAngle, t.x + 20*(cos(TWO_PI - t.currentAngle)), t.y + 20*(sin(TWO_PI - t.currentAngle)), 0));
+    activeBullet.add(new Bullet(TWO_PI - t.currentAngle, t.x + 20*(cos(TWO_PI - t.currentAngle)), t.y + 20*(sin(TWO_PI - t.currentAngle)), 0, randColor()));
     redChange = false;
   }
   if (keys[9] && greenChange && activeTank.get(1).bulletCount > 0 && activeTank.get(1).alive) {
     activeTank.get(1).bulletCount--;
     Tank t = activeTank.get(1);
-    activeBullet.add(new Bullet(TWO_PI - t.currentAngle, t.x + 20*(cos(TWO_PI - t.currentAngle)), t.y + 20*(sin(TWO_PI - t.currentAngle)), 1));
+    activeBullet.add(new Bullet(TWO_PI - t.currentAngle, t.x + 20*(cos(TWO_PI - t.currentAngle)), t.y + 20*(sin(TWO_PI - t.currentAngle)), 1, randColor()));
     greenChange = false;
+  }
+  if (keys[10]) {
+    skip = true;
   }
   
 }
@@ -356,8 +410,22 @@ void displayTanks()
   
       rotate(t.currentAngle);
       translate(-t.x, -t.y);
+    } else {
+      Tank t = activeTank.get(i);
+      PImage img = loadImage(Integer.toString(i+1) + "dead.png");
+      img.resize(40, 40);
+  
+      translate(int(t.x), int(t.y));
+      rotate(-t.currentAngle);
+      image(img, 0, 0);
+  
+      rotate(t.currentAngle);
+      translate(-t.x, -t.y);
     }
 }
+
+double bulletXSpeed = BULLET_SPEED;
+double bulletYSpeed = BULLET_SPEED;
 
 void updateBullets()
 {
@@ -374,20 +442,27 @@ void updateBullets()
      
     else 
     {
-      b.y += sin(b.currentAngle)*3.1;
-      b.x += cos(b.currentAngle)*3.1;
-       
-      for (int k = (int)b.x-8; k <= b.x+8; k++)
-        for (int j = (int)b.y-8; j <= b.y+8; j++)
-           if (board.containsKey(new Coor(k, j)) && board.get(new Coor(k, j)) != 0)
-           {
-             if (within(3, k, j, (int)(b.x), (int)(b.y)))
+      if (SIMULATE_LAG) {
+        bulletXSpeed = ((float)activeTank.get(activeBullet.get(i).id).bulletCount / MAX_BULLETS) * BULLET_SPEED;
+        bulletYSpeed = ((float)activeTank.get(activeBullet.get(i).id).bulletCount / MAX_BULLETS) * BULLET_SPEED;
+      }
+      
+      b.y += sin(b.currentAngle) * bulletXSpeed;
+      b.x += cos(b.currentAngle) * bulletYSpeed;
+      
+      if (BULLETS_RESPECT_WALLS) { 
+        for (int k = (int)b.x-8; k <= b.x+8; k++)
+          for (int j = (int)b.y-8; j <= b.y+8; j++)
+             if (board.containsKey(new Coor(k, j)) && board.get(new Coor(k, j)) != 0)
              {
-                if (board.get(new Coor(k, j)) == 1) b.currentAngle = ((PI - b.currentAngle) + TWO_PI) % TWO_PI;
-                else if (board.get(new Coor(k, j)) == 2) b.currentAngle = TWO_PI - b.currentAngle;
+               if (within(3, k, j, (int)(b.x), (int)(b.y)))
+               {
+                  if (board.get(new Coor(k, j)) == 1) b.currentAngle = ((PI - b.currentAngle) + TWO_PI) % TWO_PI;
+                  else if (board.get(new Coor(k, j)) == 2) b.currentAngle = TWO_PI - b.currentAngle;
+               }
              }
-           }
-    }
+      }
+      }
     
   }  
 }
@@ -396,8 +471,8 @@ void displayBullets()
 {
   for (int i = 0; i < activeBullet.size(); i++)
   {
-      fill(255);
-      ellipse(activeBullet.get(i).x, activeBullet.get(i).y, 6, 6);
+      fill( activeBullet.get(i).c );
+      ellipse(activeBullet.get(i).x, activeBullet.get(i).y, 10, 10);
   }
 }
 
@@ -453,6 +528,9 @@ void makeBoard()
     greenInd = true;
     numDead++; return ;
   }
+  if (skip) {
+    return ;
+  }
   
   clearBoard();
   
@@ -482,6 +560,7 @@ void keyPressed()
     if (key == 's' || key == 'S') keys[7] = true;
     if (key == 'f' || key == 'F') keys[8] = true;
     if (key == 'q' || key == 'Q') keys[9] = true;
+    if (key == 'z' || key == 'Z') keys[10] = true;
   }
 }
 
@@ -499,6 +578,7 @@ void keyReleased()
     if (key == 's' || key == 'S') keys[7] = false;
     if (key == 'f' || key == 'F') keys[8] = false;
     if (key == 'q' || key == 'Q') {keys[9] = false; greenChange = true;}
+    if (key == 'z' || key == 'Z') keys[10] = false;
   }
 }
 
@@ -564,4 +644,12 @@ boolean within(int w, int x1, int y1, int x2, int y2)
 {
   if ((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2) <= w*w) return true;
   else return false;  
+}
+
+int rand(int min, int max) {
+  return (int) random(max - min) + min;
+}
+
+color randColor() {
+  return color(rand(0, 255), rand(0, 255), rand(0, 255));
 }
